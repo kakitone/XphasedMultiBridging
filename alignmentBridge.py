@@ -431,7 +431,7 @@ def indelMSABridging(f2, currentNode,noisyReads,p, snpRate,flankinglen, paramete
     indelRobot.setReadStat( Nshort= parameterRobot.N, Nlong=  parameterRobot.N, Lshort= parameterRobot.L, Llong= parameterRobot.L, p= parameterRobot.p , longOnly = True)
     indelRobot.setGenomeStat(G = parameterRobot.G, lrep=500, lsnp=200, lint=50 )
     indelRobot.setThresholdPara(liid = 30, thresForRandom= 0.5,thresForins =0.4, thresFordel=0.4, insMin=4, delMin=4,thresholdForSupport= 0.15, subthreshold= 9, editsub= -10, editins= -1, editdel= -1, editmatch = 1, lookRange =15)
-    indelRobot.tunePara()
+    #indelRobot.tunePara()
     indelRobot.snprate = snpRate
     
 
@@ -517,15 +517,21 @@ def formToProcessList(f2, noisyReads, currentNode, indelRobot, flankinglen):
         
         if edgeWt+1+flankinglen <= len(prevNode[0].nodeIndexList):
             frankingin = prevNode[0].nodeIndexList[-(edgeWt+1+flankinglen)]
+            readList = bridgeResolve.findRangeList(prevNode[0].nodeIndexList[-(edgeWt+1+flankinglen+searchDepth):-(edgeWt+1+flankinglen)], f2 )
+            
         elif len(prevNode[0].listOfPrevNodes) > 0:
             edgeWt2 = prevNode[0].listOfPrevNodes[0][1]
             maxlen = len(prevNode[0].listOfPrevNodes[0][0].nodeIndexList)
             frankingin = prevNode[0].listOfPrevNodes[0][0].nodeIndexList[-min(edgeWt2 + 1 + edgeWt+flankinglen -len(prevNode[0].nodeIndexList),maxlen)]
+            readList = bridgeResolve.findRangeList(prevNode[0].listOfPrevNodes[0][0].nodeIndexList[-min(edgeWt2 + 1 + edgeWt+flankinglen -len(prevNode[0].nodeIndexList)+ searchDepth,maxlen):-min(edgeWt2 + 1 + edgeWt+flankinglen -len(prevNode[0].nodeIndexList),maxlen)], f2 )
+
         else: 
             frankingin= prevNode[0].nodeIndexList[0]
+            readList = bridgeResolve.findRangeList(prevNode[0].nodeIndexList[0:min(searchDepth, len(prevNode[0].nodeIndexList))], f2 )
+
             
         
-        readList = bridgeResolve.obtainReadNum(frankingin, f2)
+        #readList = bridgeResolve.obtainReadNum(frankingin, f2)
         if i == 0 : 
             for eachitem in readList:
                 in1IndexList.append(eachitem[0]) 
@@ -542,14 +548,21 @@ def formToProcessList(f2, noisyReads, currentNode, indelRobot, flankinglen):
         
         if edgeWt+flankinglen < len(nextNode[0].nodeIndexList) :
             frankingout = nextNode[0].nodeIndexList[edgeWt+flankinglen]
+            readList = bridgeResolve.findRangeList(nextNode[0].nodeIndexList[edgeWt+flankinglen:edgeWt+flankinglen+searchDepth], f2 )
+            
         elif len(nextNode[0].listOfNextNodes) > 0:
             edgeWt2 = nextNode[0].listOfNextNodes[0][1]
             maxlen = len(nextNode[0].listOfNextNodes[0][0].nodeIndexList)
             frankingout = nextNode[0].listOfNextNodes[0][0].nodeIndexList[min(edgeWt2+edgeWt+flankinglen -len(nextNode[0].nodeIndexList), maxlen-1)]
+            readList = bridgeResolve.findRangeList(nextNode[0].listOfNextNodes[0][0].nodeIndexList[min(edgeWt2+edgeWt+flankinglen -len(nextNode[0].nodeIndexList), maxlen-1):min(edgeWt2+edgeWt+flankinglen -len(nextNode[0].nodeIndexList)+searchDepth, maxlen-1)], f2 )
+
         else: 
             frankingout = nextNode[0].nodeIndexList[-1]
+            readList = bridgeResolve.findRangeList(nextNode[0].nodeIndexList[max(0, len(nextNode[0].nodeIndexList) - searchDepth):len(nextNode[0].nodeIndexList)], f2 )
+   
         
-        readList = bridgeResolve.obtainReadNum(frankingout, f2)
+        #readList = bridgeResolve.obtainReadNum(frankingout, f2)
+        
         if i == 0 : 
             for eachitem in readList:
                 out1IndexList.append(eachitem[0]) 
