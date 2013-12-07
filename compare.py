@@ -141,7 +141,7 @@ def findMismatchNumber(motherGenome, reconstructedGenome):
     # 1)  Sliding window matching and count
     # 2)  Make sure to not include the loop around thing. 
     
-    W= 50 
+    W= 200 
     
     runningI = 0 
     runningJ = 0 
@@ -156,11 +156,11 @@ def findMismatchNumber(motherGenome, reconstructedGenome):
     overallSum = 0
     while runningI < len(motherGenome) -1 and tmprunningI != runningI:
         score, returnalignedSeq1, returnalignedSeq2 , starti, startj , endi, endj = cleaner.SWAlignmentFixRef(motherGenome[runningI:runningI+W] , reconstructedGenome[runningJ:runningJ+W], parameterRobot)
-   #     print "Mother: "
-   #     cluster.printSeq(returnalignedSeq1)
-   #     print "Reconstructed: "
-   #     cluster.printSeq(returnalignedSeq2)
-   #     print "----------"
+        #print "Mother: "
+        #cluster.printSeq(returnalignedSeq1)
+        #print "Reconstructed: "
+        #cluster.printSeq(returnalignedSeq2)
+        #print "----------"
         
         tmprunningI = runningI
         
@@ -188,7 +188,7 @@ def arrangeSeqBasedOnRefEasy(motherGenome, reconstructedGenome, parameterRobot):
     counter = 0
     scoreList = []
     
-    while runningI < len(motherGenome) -1 and counter < 10000:
+    while runningI < len(motherGenome) -1 and counter < 60000:
         score, returnalignedSeq1, returnalignedSeq2 , starti, startj , endi, endj = cleaner.SWAlignment(motherGenome[runningI:runningI+W] , reconstructedGenome[runningJ:runningJ+W], parameterRobot)
         scoreList.append([score,starti, startj , endi, endj,runningI ])
         

@@ -219,7 +219,7 @@ def checkSkip(currentList):
 def segmentedAdd(recovSeq, f2 ,readSortedf2,  noisyReads, parameterRobot):
     recovSeqNew = np.zeros(2*len(recovSeq), dtype = np.int64)
     thres = 2
-    W = 10
+    W = 100
 
     counter = 0 
     runningSum = 0
@@ -274,6 +274,9 @@ def reportRecovSeq(recovSeq, f2, noisyReads, parameterRobot):
         
         recovSeq = segmentedAdd(recovSeq, f2 ,readSortedf2, noisyReads, parameterRobot)
         print "len(recovSeq)",len(recovSeq) 
+        
+        #recovSeq = segmentedAdd(recovSeq, f2 ,readSortedf2, noisyReads, parameterRobot)
+        #print "len(recovSeq)",len(recovSeq) 
     # Form the corrected Sequences 
     correctedGen = convertSeqtoBase(recovSeq, f2, noisyReads, parameterRobot)
     

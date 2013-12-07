@@ -118,8 +118,7 @@ def clusteringTestingOfK(G, N, L, folderName, K, threshold, liid):
     
     
     dummyParameters.N, dummyParameters.L, dummyParameters.K, dummyParameters.G, dummyParameters.threshold, dummyParameters.liid = N, L, K, G, threshold, liid
-
-    
+     
     cluster.groupNoisyKmers(noisyReads,dummyParameters, 'fast' )
 
 def graphFormUnitTest(N, G, L, folderName =""):
@@ -503,7 +502,7 @@ def MUMMERBatch():
     
     
 def testChecking(folderName):
-    N, L, G =     869, 180, 10000
+    N, L, G =     339, 2000, 50000
     f2 = open(folderName+"rec.txt", 'r')
     temp2 = f2.read()
     recov = np.zeros(len(temp2), dtype = np.int32)
@@ -547,8 +546,8 @@ t0 = time.time()
 def speedTest():
             
     #N, L, G =     869, 180, 10000
-    #N, L, G = 339, 2000, 50000
-    N,L, G =     927, 200,10000
+    N, L, G = 339, 2000, 50000
+#     N,L, G =     927, 200,10000
     #K = 32
     threshold = 5
     liid = 48
@@ -559,13 +558,13 @@ def speedTest():
     
     
     for i in range(0,1):
-        folderName = "synthetic_reads/sample_point_0/round_"+ str(i) +"/"
+        folderName = "synthetic_reads/sample_point_0/round_"+ str(i) +"_backup/"
         #graphFormUnitTest(N, G, L, folderName)
         #graphFormUnitTest2(N, G, L, folderName)
         #branchClearingUnitTest(G, N, L,K, liid, threshold, folderName,branchingDepth=20)
         #resolveRepeatsUnitTest(folderName)
-        numMistakes, success = ECUnitTest(N, L, folderName,10,20) 
-        #testChecking(folderName)
+        #numMistakes, success = ECUnitTest(N, L, folderName,10,20) 
+        testChecking(folderName)
         #print len(motherGen), len(reads), len(noisyReads)
        
         #os.system("bash ../gepard-1.30/gepardcmd.sh -seq1 " + seq1Name +" -seq2 "+seq2Name+" -matrix matrices/edna.mat -outfile Jane.png")

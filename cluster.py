@@ -494,7 +494,7 @@ def canDoFast(startFingerPrint, endFingerPrint, parameterRobot):
     targetlength = targetOffsetEnd - targetOffsetStart
     
     #if  0 < mylength < 60 and 0 < targetlength < 60 and abs(mylength - targetlength)< parameterRobot.fingerPrint and not startFingerPrint== endFingerPrint:
-    if  0 < mylength  and 0 < targetlength  and abs(mylength - targetlength)< parameterRobot.fingerPrint and not startFingerPrint== endFingerPrint:
+    if  0 < mylength  and 0 < targetlength  and abs(mylength - targetlength)< parameterRobot.liid and not startFingerPrint== endFingerPrint:
      
         check = True
         
@@ -507,7 +507,7 @@ def SWAlignmentBanded(startFingerPrint, endFingerPrint, read1, read2, parameterR
     
     myOffsetStart, targetOffsetStart = startFingerPrint[0], startFingerPrint[1]
     myOffsetEnd, targetOffsetEnd = endFingerPrint[0], endFingerPrint[1]
-    bandSearch = 20
+    bandSearch = 30
     #print " myOffsetStart, targetOffsetStart, myOffsetEnd, targetOffsetEnd", myOffsetStart, targetOffsetStart, myOffsetEnd, targetOffsetEnd
     if myOffsetStart < targetOffsetStart:
         suffixRead, prefixRead =  read1 ,read2
@@ -535,7 +535,7 @@ def SWAlignmentBanded(startFingerPrint, endFingerPrint, read1, read2, parameterR
 
     
     #print "prefixStart, suffixStart: ", prefixStart, suffixStart
-    seq1 ,seq2 =  prefixRead[prefixStart: prefixEnd+1], suffixRead[suffixStart:suffixEnd +1 ]
+    seq1 ,seq2 =   prefixRead[prefixStart: prefixEnd+1], suffixRead[suffixStart:suffixEnd +1 ]
     
     #print "len(seq1),len(seq2)", len(seq1),len(seq2)
     #print prefixRead, suffixRead
@@ -578,8 +578,8 @@ def SWAlignmentBanded(startFingerPrint, endFingerPrint, read1, read2, parameterR
         int endIndex ; 
         
         for (i =1 ;i <m ; i++){
-            startIndex = i - 2*bandSearch ;
-            endIndex = i + 2*bandSearch ;
+            startIndex = i  -2*bandSearch;
+            endIndex = i +2*bandSearch;
              
             if (startIndex <= 0 ){
                 startIndex = 1 ; 
@@ -674,26 +674,30 @@ def SWAlignmentBanded(startFingerPrint, endFingerPrint, read1, read2, parameterR
     returnalignedSeq1 = reverseString(alignedSeq1)
     returnalignedSeq2 = reverseString(alignedSeq2)
     
-    scoretmp , returnalignedSeq1tmp, returnalignedSeq2tmp , startitmp, startjtmp , enditmp, endjtmp  = SWAlignment(seq1NP,seq2NP, parameterRobot)
+    #scoretmp , returnalignedSeq1tmp, returnalignedSeq2tmp , startitmp, startjtmp , enditmp, endjtmp  = SWAlignment(seq1NP,seq2NP, parameterRobot)
     #print "starti, startj , endi, endj , m , n", starti, startj , endi, endj , m , n
+    '''
     if [starti, startj , endi, endj ]!= [startitmp, startjtmp , enditmp, endjtmp]:
         print "--------------"
         print "This fcn : score, starti, startj , endi, endj , m , n", score, starti, startj , endi, endj , m , n
         print "This fcn: [prefixStart,suffixStart, prefixEnd+1. suffixEnd +1 ]", prefixStart,  suffixStart,prefixEnd, suffixEnd
-
+        printSeq(returnalignedSeq1)
+        printSeq(returnalignedSeq2)
         print "SWAlignment : scoretmp, startitmp, startjtmp , enditmp, endjtmp , m , n",scoretmp, startitmp, startjtmp , enditmp, endjtmp , m , n
         scoretmp , returnalignedSeq1tmp, returnalignedSeq2tmp , startitmp, startjtmp , enditmp, endjtmp  = SWAlignment(prefixRead,suffixRead, parameterRobot)
         print "SWAlignment: ", startitmp, startjtmp , enditmp, endjtmp
-        
+        printSeq(returnalignedSeq1tmp)
+        printSeq(returnalignedSeq2tmp)
         
         print "startSkip, endSkip",startSkip, endSkip
         print "myOffsetStart, targetOffsetStart",myOffsetStart, targetOffsetStart
         print "myOffsetEnd, targetOffsetEnd ",myOffsetEnd, targetOffsetEnd 
         print "--------------"
 
+    '''
     
     starti, endi = starti + prefixStart, endi + prefixStart
-   # startj , endj = startj  ,endj 
+    #startj , endj = startj  ,endj 
     #starti , endi , startj , endj = prefixStart , len(prefixRead), 0, suffixEnd
     
     
@@ -862,7 +866,7 @@ def groupIndelNoisyKmers(noisyReads, parameterRobot, typeOfOpt = "fast"):
     overhang = 5
 
     # Find fingerPrint
-    K = 10
+    K = 20
 
     print "clusterRounds, fingerPrint, clusterTreeSize",clusterRounds, fingerPrint ,clusterTreeSize
     
@@ -954,7 +958,7 @@ def groupIndelNoisyKmers(noisyReads, parameterRobot, typeOfOpt = "fast"):
                 score, returnalignedSeq1, returnalignedSeq2 , starti, startj , endi, endj = SWAlignment(noisyReads[i][0:endNoisy1], noisyReads[j][0:endNoisy2], parameterRobot)
     
             '''
-            if [scoretmp   , startjtmp,  startitmp , endjtmp ,enditmp ]!= [score  , startj,  starti , endj ,endi ]: 
+            if [scoretmp  ]!= [score ]: 
                 print "Important:::"
                 print "[scoretmp, returnalignedSeq2tmp ,returnalignedSeq1tmp  , startjtmp,  startitmp , endjtmp ,enditmp ]"
                 print [scoretmp  , startjtmp,  startitmp , endjtmp ,enditmp ]
