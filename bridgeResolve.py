@@ -2,6 +2,8 @@ import graphForm
 import logging 
 
 import numpy as np 
+import cluster 
+from operator import itemgetter
 
 class MBCondensedNode(graphForm.condensedNode):
     xNodeState = False
@@ -41,6 +43,7 @@ class MBCondensedNode(graphForm.condensedNode):
 def distinct(oldtmplist, typeOfMode = "all"):
     tmplist = sorted(oldtmplist)
     runningindex = 0 
+    thres = 100
     
     while (runningindex < len(tmplist) -1 ):
         if typeOfMode == "all":
@@ -54,6 +57,13 @@ def distinct(oldtmplist, typeOfMode = "all"):
                 tmplist.pop(runningindex)
             else:
                 runningindex = runningindex + 1
+                
+        elif typeOfMode == "zeroThres":
+            if tmplist[runningindex][0] == tmplist[runningindex +1][0] and abs(tmplist[runningindex][1] - tmplist[runningindex +1][1] ) < thres:
+                tmplist.pop(runningindex)
+            else:
+                runningindex = runningindex + 1
+            
             
     return tmplist
 
@@ -78,20 +88,43 @@ def isIntersect(listA, listB, lrepeat):
             
     return False
 
+def combineListAandB(listA, listB):
+    combinedList = []
+    for eachitem in listA:
+        tmp = []
+        for eachsubitem in eachitem:
+            tmp.append(eachsubitem)
+        tmp.append(0)
+        combinedList.append(tmp)
+        
+    for eachitem in listB:
+        tmp = []
+        for eachsubitem in eachitem:
+            tmp.append(eachsubitem)
+        tmp.append(1)
+        combinedList.append(tmp)
+    return combinedList
+    
 
 def isIntersectIndel(listA, listB, lrepeat):
-    totalList = modifyInList(listA, lrepeat) + listB
+   # totalList = combineListAandB(modifyInList(listA, lrepeat), listB) 
+    totalList = modifyInList(listA, lrepeat)+ listB 
+    
     print "modifyInList(listA, lrepeat) ", modifyInList(listA, lrepeat) 
     print "listB, lrepeat", listB, lrepeat
     totalList = sorted(totalList)
-    threshold = 30
+    #threshold = 300
+    threshold = 40
+    returnList =[] 
     
     for index in range(len(totalList) -1):
-        if totalList[index][0] == totalList[index +1][0] and abs(totalList[index][1]-totalList[index +1][1] ) < threshold:
-            return True
-            
-            
-    return False
+        if totalList[index][0] == totalList[index +1][0]  and abs(totalList[index][1]-totalList[index +1][1] ) < threshold:
+            returnList.append(totalList[index][0])
+    
+    if len(returnList) > 0 : 
+        returnList = distinct(returnList)
+    return returnList
+
 def bisectkk(a, x, lo=0, hi=None):
     """Return the index where to insert item x in list a, assuming a is sorted.
 
@@ -163,14 +196,139 @@ def findRangeList(frankinginList, f2 ):
     
     inList = sorted(inList)
     inList = distinct(inList, "zero")
-    print "inList",inList 
+    inList = distinct(inList, "zeroThres")
+    #inList = distinct(inList, "all")
+    #print "inList",inList 
     return inList
  
+ 
+def checkBridgingFromReads(f2, xNode,frankingdepth, noisyReads, parameterRobot): 
+    isBridged, matchingList = False, []
+    ### Find bridging reads
+    bridgingReads = []
+    K = 150
+    searchdepth = 5
+    
+    
+    
+    outList = findRangeList(xNode.nodeIndexList[K: K+searchdepth], f2 )
+    inList = findRangeList(xNode.nodeIndexList[frankingdepth:searchdepth + frankingdepth], f2 )
+    
+    print "my name is Bond", outList
+    print inList
+    
+    bridgingReads = isIntersectIndel(inList, outList, K - frankingdepth)
+    
+    ### Determine Extension List and isBridged or not
+    inputReads = [8 for i in range(len(xNode.listOfPrevNodes))]
+    outputReads = [8 for i in range(len(xNode.listOfNextNodes))]
+    inMap = []
+    outMap = []
+    threshold, liid,overhang= parameterRobot.threshold ,parameterRobot.liid ,5 
+    speciallen = 40
+    
+    for i in range(len(inputReads)):
+        tempList = obtainReadNum(xNode.listOfPrevNodes[i][0].nodeIndexList[-speciallen], f2)
+        tempList = sorted(tempList, key = itemgetter(1))
+        inputReads[i] = tempList[0][0]
+        print "In ",i , xNode.listOfPrevNodes[i][0].nodeIndexList[-1],inputReads[i], len(xNode.listOfPrevNodes[i][0].nodeIndexList)
+    
+    for i in range(len(outputReads)):
+        tempList = obtainReadNum(xNode.listOfNextNodes[i][0].nodeIndexList[speciallen], f2)
+        tempList = sorted(tempList,key = itemgetter(1))
+        outputReads[i] = tempList[-1][0]
+        print "Out ",i , xNode.listOfNextNodes[i][0].nodeIndexList[0], outputReads[i], len(xNode.listOfNextNodes[i][0].nodeIndexList)
+        
+    print "hi there", len(inputReads), len(outputReads), len(bridgingReads)
+    for prevIndex, dummyindex in zip(inputReads, range(len(inputReads))):
+        endNoisy1= 0 
+#  print noisyReads[0][0]
+#        print prevIndex
+#        print endNoisy1
+        while (noisyReads[prevIndex][endNoisy1] != 0):
+            endNoisy1 += 1
+
+        for bridgeIndex in bridgingReads:     
+            endNoisy2 =0 
+            while (noisyReads[bridgeIndex][endNoisy2] != 0):
+                endNoisy2 += 1        
+                
+            score, returnalignedSeq1, returnalignedSeq2 , starti, startj , endi, endj = cluster.SWAlignment(noisyReads[prevIndex][0:endNoisy1], noisyReads[bridgeIndex][0:endNoisy2], parameterRobot)
+
+            check = cluster.meetRequirement(score, returnalignedSeq1, returnalignedSeq2 ,starti, startj, endi, endj, threshold, liid,overhang, endNoisy1, endNoisy2 )
+            if [prevIndex, bridgeIndex] == [1318, 235]:
+                print "strange"
+                print " starti, startj , endi, endj",  starti, startj , endi, endj
+                cluster.printSeq(returnalignedSeq1)
+                cluster.printSeq(returnalignedSeq2) 
+                
+            if check : 
+                inMap.append([prevIndex, bridgeIndex, 0, dummyindex])
+           
+    
+    print "inMap", inMap
+    for nextIndex,dummyindex in zip(outputReads,range(len(outputReads))):
+        endNoisy1= 0 
+        while (noisyReads[nextIndex][endNoisy1] != 0):
+            endNoisy1 += 1
+
+        for bridgeIndex in bridgingReads:      
+            endNoisy2 =0 
+            while (noisyReads[bridgeIndex][endNoisy2] != 0):
+                endNoisy2 += 1         
+                
+            score, returnalignedSeq1, returnalignedSeq2 , starti, startj , endi, endj = cluster.SWAlignment(noisyReads[nextIndex][0:endNoisy1], noisyReads[bridgeIndex][0:endNoisy2], parameterRobot)
+            check = cluster.meetRequirement(score, returnalignedSeq1, returnalignedSeq2 ,starti, startj, endi, endj, threshold, liid,overhang, endNoisy1, endNoisy2)
+            if [nextIndex, bridgeIndex] == [235, 235]:
+                print "strange 2 "
+                print " starti, startj , endi, endj",  starti, startj , endi, endj
+                cluster.printSeq(returnalignedSeq1)
+                cluster.printSeq(returnalignedSeq2)
+            if check : 
+                outMap.append([nextIndex, bridgeIndex, 1, dummyindex])
+                
+    print "outMap,", outMap 
+                
+    print "matchingList", matchingList      
+    for eachinmap in inMap:
+        for eachoutmap in outMap:
+            if eachinmap[1] == eachoutmap[1] :
+                dummyIn = eachinmap[3]
+                dummyOut = eachoutmap[3]
+                print "dummyIn, dummyOut", dummyIn, dummyOut
+                #print "eachinmap", eachinmap
+                #print "eachoutmap",eachoutmap
+                
+                edgeWt = xNode.listOfPrevNodes[dummyIn][1]
+                inKmerIndex = xNode.listOfPrevNodes[dummyIn][0].nodeIndexList[-(edgeWt+1 )]
+                edgeWt = xNode.listOfNextNodes[dummyOut][1]
+                outKmerIndex =  xNode.listOfNextNodes[dummyOut][0].nodeIndexList[edgeWt]
+                
+                matchingList.append([inKmerIndex,outKmerIndex ])
+    
+    ### Check isBridged                 
+    if len(matchingList) > 0 :          
+        matchingList = distinct(matchingList)
+        reverseList = []
+        for eachitem in matchingList:
+            reverseList.append([eachitem[1], eachitem[0]])
+        
+        if len(distinct(matchingList, "zero")) == len(inputReads) and len(distinct(reverseList, "zero")) == len(outputReads):
+            isBridged = True
+        else:
+            isBridged = False
+    
+    #matchingList = [[28346, 32138], [28346, 4913], [30233, 32138]]
+    
+    
+    return isBridged, matchingList 
+
+
 def checkBridging(f2, xNode,frankingdepth):
     isBridged = True
     matchingList = []
     searchDepth = 5
-    
+    #frankingdepth = 1
     
     lenRepeat = len(xNode.nodeIndexList)
     
@@ -182,7 +340,8 @@ def checkBridging(f2, xNode,frankingdepth):
         frankinginList = []
         if edgeWt+1+frankingdepth <= len(eachinnode[0].nodeIndexList):
             frankinginList = eachinnode[0].nodeIndexList[-(edgeWt+1+frankingdepth):-(edgeWt+1+frankingdepth) + searchDepth]
-            print len(frankinginList)
+            #frankinginList = eachinnode[0].nodeIndexList[-(edgeWt+1+frankingdepth):-1]
+            #print "his is run",  len(frankinginList), (edgeWt+1+frankingdepth), len(eachinnode[0].nodeIndexList)
         elif len(eachinnode[0].listOfPrevNodes) > 0:
             edgeWt2 = eachinnode[0].listOfPrevNodes[0][1]
             maxlen = len(eachinnode[0].listOfPrevNodes[0][0].nodeIndexList)
@@ -190,10 +349,12 @@ def checkBridging(f2, xNode,frankingdepth):
         else: 
             frankinginList= [eachinnode[0].nodeIndexList[0] ] 
         
+        print "inKmerIndex", inKmerIndex      
         
+        print "frankinginList", frankinginList  
         inList = findRangeList(frankinginList, f2 )
-        
-        print "inKmerIndex", inKmerIndex
+        print "inList", inList
+
  
         testBridged = False
         for eachoutnode in xNode.listOfNextNodes:
@@ -203,6 +364,7 @@ def checkBridging(f2, xNode,frankingdepth):
             
             if edgeWt+frankingdepth < len(eachoutnode[0].nodeIndexList) :
                 frankingoutList = eachoutnode[0].nodeIndexList[edgeWt+frankingdepth- searchDepth: edgeWt+frankingdepth]
+                #frankingoutList = eachoutnode[0].nodeIndexList[0: edgeWt+frankingdepth]
             elif len(eachinnode[0].listOfNextNodes) > 0:
                 edgeWt2 = eachoutnode[0].listOfNextNodes[0][1]
                 maxlen = len(eachoutnode[0].listOfNextNodes[0][0].nodeIndexList)
@@ -211,18 +373,21 @@ def checkBridging(f2, xNode,frankingdepth):
                 frankingoutList = [eachoutnode[0].nodeIndexList[-1]]
                 
                 
-            print "outKmerIndex", outKmerIndex
+            print "outKmerIndex", outKmerIndex,len(eachoutnode[0].nodeIndexList)
+            
+            print "frankingoutList", frankingoutList
             outList = findRangeList(frankingoutList, f2 )
             print "outList",outList
-            
-            if isIntersectIndel(inList, outList, lenRepeat+frankingdepth*2):
+            tmpRdList = isIntersectIndel(inList, outList, lenRepeat+frankingdepth*2)
+            if len(tmpRdList) != 0:
                 testBridged = True
+                #print "[inKmerIndex, outKmerIndex]", [inKmerIndex, outKmerIndex], tmpRdList
                 matchingList.append([inKmerIndex, outKmerIndex])
                 
         
         if testBridged == False:
             isBridged = False
-            print "Fhere"
+            #print "Fhere"
             
 
     for eachoutnode in xNode.listOfNextNodes:
@@ -240,19 +405,19 @@ def checkBridging(f2, xNode,frankingdepth):
             frankingoutList = [ eachoutnode[0].nodeIndexList[-1] ]
             
             
-        print "outKmerIndex", outKmerIndex
+        #print "outKmerIndex", outKmerIndex
         outList = findRangeList(frankingoutList, f2 )
-        print "outList",outList
+        #print "outList",outList
                 
         testBridged = False
         for eachinnode in xNode.listOfPrevNodes:
             edgeWt = eachinnode[1]
-            print  "len(eachinnode) ",len(eachinnode),  edgeWt, len(eachinnode[0].nodeIndexList) , xNode.nodeIndex
+            #print  "len(eachinnode) ",len(eachinnode),  edgeWt, len(eachinnode[0].nodeIndexList) , xNode.nodeIndex
             inKmerIndex = eachinnode[0].nodeIndexList[-(edgeWt+1 )]
             frankinginList = []
             if edgeWt+1+frankingdepth <= len(eachinnode[0].nodeIndexList):
                 frankinginList = eachinnode[0].nodeIndexList[-(edgeWt+1+frankingdepth):-(edgeWt+1+frankingdepth) + searchDepth]
-                print len(frankinginList)
+                #print len(frankinginList)
             elif len(eachinnode[0].listOfPrevNodes) > 0:
                 edgeWt2 = eachinnode[0].listOfPrevNodes[0][1]
                 maxlen = len(eachinnode[0].listOfPrevNodes[0][0].nodeIndexList)
@@ -262,16 +427,20 @@ def checkBridging(f2, xNode,frankingdepth):
 
             inList = findRangeList(frankinginList, f2 )
             
-            print "inKmerIndex", inKmerIndex
+            #print "inKmerIndex", inKmerIndex
             
-            if isIntersectIndel(inList, outList, lenRepeat+frankingdepth*2):
+            if len(isIntersectIndel(inList, outList, lenRepeat+frankingdepth*2)) != 0:
                 testBridged = True
-                print "Yes ",outKmerIndex
+                #print "Yes ",outKmerIndex
                 
         if testBridged == False:
             isBridged = False
 
     print "isBridgeddd", isBridged
+    
+#    if not isBridged:
+#        isBridged, matchingList = checkBridgingFromReads(f2, xNode,frankingdepth, noisyReads, parameterRobot)
+   
     return isBridged, matchingList
 
 def makeDistinctList(tmpList):
@@ -502,10 +671,6 @@ def resolveFramework(currentNode, f2,startingGpNum, G3, canResolve, kmerPairsLis
             if eachnode.checkXNodeState == False and currentState == True:
                 eachnode.updateXNodeState(currentState)
                 newXnodes.append(eachnode)
-            
-    
-    
-     
     
     return newXnodes,startingGpNum
 
@@ -604,19 +769,19 @@ def resolveRepeats(f2, G2,parameterRobot):
     print "Resolving Repeats: "
     print "======================"
     round = 0
-    while (len(xNodesList) > 0 ):
+    while (len(xNodesList) > 0  ):
 
         currentNode = xNodesList.pop(0)
         
         #print "currentNode.nodeIndex",currentNode.nodeIndex
         
-        canResolve, kmerPairsList = checkBridging(f2, currentNode,bridgeLimit)
+        canResolve, kmerPairsList =  checkBridging(f2, currentNode,bridgeLimit)
         print "kmerPairsList", kmerPairsList
         newXNodeList, startingGpNum =  resolveFramework(currentNode, f2,startingGpNum, G3, canResolve, kmerPairsList )
         xNodesList = xNodesList + newXNodeList
         
         # Hack to get back the selfloop update Xnodes
-        
+        #assert(1==2)
         print "Before : len(xNodesList), len(G3)",len(xNodesList), len(G3)
         removeEmptyNodes(G3)
         print "After : len(xNodesList), len(G3)",len(xNodesList), len(G3)

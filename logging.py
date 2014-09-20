@@ -295,11 +295,11 @@ def savingLNKFile(folderName = ""):
     
     for index in range(5):
         
-        G, L, p= 10000, 200, 0.015
+        G, L, p= 50000, 200, 0.015
         linter , ltriple = 100, 10 
         L = L - index*20
         
-        epsilon = 0.1
+        epsilon = 0.05
     
     
         ### Noisy Compute
@@ -317,9 +317,10 @@ def savingLNKFile(folderName = ""):
 
         Nbridge = int ( G*math.log(3/epsilon)/float(L-max(linter, ltriple) - 10) )
         
+        #N = int ( max(NKcov, Nbridge)*1.5) 
         N = int ( max(NKcov, Nbridge)*1.5) 
         
-        numberOfClusterRounds,brachingDepth,bridgingDepth,msaWidth = 6 , liid*1/3, liid*1/3 , liid*2/3
+        numberOfClusterRounds,brachingDepth,bridgingDepth,msaWidth = 6 , liid*2/3, liid*2/3 , liid*2/3
         
         
         ### Noiseless Compute
@@ -423,7 +424,8 @@ def savingGenomeSegmentFile(folderName):
     
     
     mywriter = csv.writer(fout)
-    mywriter.writerow(["G", "N", "L", "p", "epsilon", "K", "liid", "threshold", "NKcov", "Nbridge", "Ncov", "Nratio" ,"numberOfClusterRounds","brachingDepth", "bridgingDepth", "msaWidth" , "Nbridgenoiseless", "ratioNoiseless" , "clusterRounds", "fingerPrint", "clusterRatio", "approx repeat", "Lcrit", "approxinter"])
+    #mywriter.writerow(["G", "N", "L", "p", "epsilon", "K", "liid", "threshold", "NKcov", "Nbridge", "Ncov", "Nratio" ,"numberOfClusterRounds","brachingDepth", "bridgingDepth", "msaWidth" , "Nbridgenoiseless", "ratioNoiseless" , "clusterRounds", "fingerPrint", "clusterRatio", "approx repeat", "Lcrit", "approxinter"])
+    mywriter.writerow(["G", "N", "L", "p", "epsilon", "K", "liid", "threshold", "NKcov", "Nbridge", "Ncov", "Nratio" ,"numberOfClusterRounds","brachingDepth", "bridgingDepth", "msaWidth" , "Nbridgenoiseless", "ratioNoiseless" , "clusterRounds", "fingerPrint", "clusterRatio", "startIndex", "endIndex", "approxinter"])
     
     
 
@@ -455,7 +457,8 @@ def savingGenomeSegmentFile(folderName):
         
         N = max(NKcov, Nbridge)
         
-        numberOfClusterRounds,brachingDepth,bridgingDepth,msaWidth = 6 , liid*1/3, liid*1/3 , liid*2/3
+        #numberOfClusterRounds,brachingDepth,bridgingDepth,msaWidth = 6 , liid*1/3, liid*1/3 , liid*2/3
+        numberOfClusterRounds,brachingDepth,bridgingDepth,msaWidth = 6 , liid*2/3, liid*2/3 , liid*2/3
         
         
         ### Noiseless Compute
@@ -467,7 +470,8 @@ def savingGenomeSegmentFile(folderName):
         
         clusterRounds, fingerPrint, clusterRatio = 2 , 6 , 1 
         
-        mywriter.writerow([G, N, L, p, epsilon, K, liid, threshold,NKcov, Nbridge, Ncov, N/float(Ncov),numberOfClusterRounds,brachingDepth,bridgingDepth,msaWidth, Nbridgenoiseless,ratioNoiseless,clusterRounds, fingerPrint, clusterRatio,dataList[index][2], dataList[index][3] ,dataList[index][6]])
+        #mywriter.writerow([G, N, L, p, epsilon, K, liid, threshold,NKcov, Nbridge, Ncov, N/float(Ncov),numberOfClusterRounds,brachingDepth,bridgingDepth,msaWidth, Nbridgenoiseless,ratioNoiseless,clusterRounds, fingerPrint, clusterRatio,dataList[index][2], dataList[index][3] ,dataList[index][6]])
+        mywriter.writerow([G, N, L, p, epsilon, K, liid, threshold,NKcov, Nbridge, Ncov, N/float(Ncov),numberOfClusterRounds,brachingDepth,bridgingDepth,msaWidth, Nbridgenoiseless,ratioNoiseless,clusterRounds, fingerPrint, clusterRatio,dataList[index][0], dataList[index][1] ,dataList[index][6]])
     
     fout.close()
     

@@ -80,6 +80,7 @@ def generateData( typeOfGen,detail, parameterRobot):
         print "genomeLen", len(motherStr)
         
         G = truncateend - truncatestart 
+        print "G:", G
         motherGen = np.zeros(G, dtype = np.int8)
         
         for eachindex in range(truncatestart, truncateend):

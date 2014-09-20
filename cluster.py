@@ -7,6 +7,13 @@ import bisect
 import random
 from scipy import weave
 from operator import itemgetter
+import multiprocessing
+import ctypes
+
+### Global Variables for SharedMemory 
+
+
+
 
 ### Disjoint Union Data Structure
 class clusterElem(object):
@@ -473,13 +480,16 @@ def meetRequirement(score, returnalignedSeq1, returnalignedSeq2 ,starti, startj,
     check = True
     if ( endi - starti ) < liid :
         check = False 
+        #print "1"
         
     numEdit = ( len(returnalignedSeq1) - score ) /2
     if numEdit > ( threshold/float(liid) ) * len(returnalignedSeq1):
         check = False
+        #print "2"
     
     if min(L1 - endi, L2 - endj)  > overhang or min(starti, startj) > overhang :
-        check  =False 
+        check  =False
+        #print "3" 
     
 
     return check 
@@ -507,6 +517,7 @@ def SWAlignmentBanded(startFingerPrint, endFingerPrint, read1, read2, parameterR
     
     myOffsetStart, targetOffsetStart = startFingerPrint[0], startFingerPrint[1]
     myOffsetEnd, targetOffsetEnd = endFingerPrint[0], endFingerPrint[1]
+    #bandSearch = 30
     bandSearch = 30
     #print " myOffsetStart, targetOffsetStart, myOffsetEnd, targetOffsetEnd", myOffsetStart, targetOffsetStart, myOffsetEnd, targetOffsetEnd
     if myOffsetStart < targetOffsetStart:
@@ -847,7 +858,92 @@ def printSeq(str2):
             printStr = printStr + " "
     print printStr + "\n"
     
-def groupIndelNoisyKmers(noisyReads, parameterRobot, typeOfOpt = "fast"):
+    
+    
+noisyReads = []
+noisyReads_base = []
+kmerlinkGraph = []
+
+class sharedMemoryWrapper:
+    def __init__(self,index):
+        self.index = index
+    def loadParameters(self, toCompareListi,endIndexArray, parameterRobot,endOfEachReadArr):
+        self.toCompareListi , self.endIndexArray, self.parameterRobot, self.endOfEachReadArr = toCompareListi , endIndexArray, parameterRobot,endOfEachReadArr
+        
+def alignParallel2(myParaObj, def_param=noisyReads):
+    print myParaObj
+    return [[0,1]]
+    
+def alignParallel(myParaObj, def_param=noisyReads):
+    i = myParaObj.index
+    toCompareList = myParaObj.toCompareListi
+    endIndexArray = myParaObj.endIndexArray
+    parameterRobot = myParaObj.parameterRobot
+    endOfEachReadArr = myParaObj.endOfEachReadArr
+    myReturnList = []
+    overhang = 5
+    #print "Here", myParaObj.index
+    
+    for eachtargetRead in toCompareList:
+        j = eachtargetRead[0]
+        startFingerPrint = eachtargetRead[1]
+        endFingerPrint = eachtargetRead[2]
+    
+        endNoisy1, endNoisy2 = endOfEachReadArr[i],endOfEachReadArr[j]
+            
+        if canDoFast(startFingerPrint, endFingerPrint, parameterRobot):
+            score, returnalignedSeq2 ,returnalignedSeq1  , startj,  starti , endj ,endi  = SWAlignmentBanded(startFingerPrint, endFingerPrint,  noisyReads[j][0:endNoisy2],noisyReads[i][0:endNoisy1], parameterRobot)
+        
+        else:
+            score, returnalignedSeq1, returnalignedSeq2 , starti, startj , endi, endj = SWAlignment(noisyReads[i][0:endNoisy1], noisyReads[j][0:endNoisy2], parameterRobot)
+        
+
+                    
+        if i != j and meetRequirement(score, returnalignedSeq1, returnalignedSeq2,starti, startj, endi, endj, parameterRobot.threshold, parameterRobot.liid, overhang , endNoisy1, endNoisy2):
+            #establish Links 
+            
+            read1Start , read2Start =  endIndexArray[i-1] +1 + starti, endIndexArray[j-1]+1 + startj
+            if i == 0 : 
+                read1Start =   starti
+            if j == 0:
+                read2Start =  startj
+                
+            runningindex1, runningindex2, dummyIndex = 0,0, 0 
+            
+        
+                 
+            while ( runningindex1+ starti + parameterRobot.K < endNoisy1+1 and runningindex2+ startj +parameterRobot.K < endNoisy2+1):
+                
+                if returnalignedSeq1[dummyIndex] ==returnalignedSeq2[dummyIndex]  :
+                
+                    startOffset1 = starti + runningindex1
+                    startOffset2 = startj + runningindex2
+        
+                    #kmerlinkGraph[read1Start+runningindex1 ].append(read2Start+runningindex2)
+                    #kmerlinkGraph[read2Start+runningindex2].append(read1Start+runningindex1 )
+                    myReturnList.append([read1Start+runningindex1,read2Start+runningindex2])
+                    myReturnList.append([read2Start+runningindex2,read1Start+runningindex1 ])
+                
+                if returnalignedSeq1[dummyIndex] != 0 :
+                    runningindex1 += 1
+                if returnalignedSeq2[dummyIndex] != 0:
+                    runningindex2 += 1
+        
+                dummyIndex += 1    
+    
+    return myReturnList
+                
+
+def myCallBack(myReturnList):
+    for eachitem in myReturnList:
+        for eachsubitem in eachitem:
+            #print eachitem
+            kmerlinkGraph[eachsubitem[0]].append(eachsubitem[1])
+    print "My CallBack"
+
+    
+
+def groupIndelNoisyKmers(noisyReadsDummy, parameterRobot, typeOfOpt = "fast"):
 
     ### Setup 
     returnfmapping = [] 
@@ -866,8 +962,22 @@ def groupIndelNoisyKmers(noisyReads, parameterRobot, typeOfOpt = "fast"):
     overhang = 5
 
     # Find fingerPrint
-    K = 20
-
+    K = 10
+    ### Shared memory objects
+    global noisyReads
+    global noisyReads_base
+    global kmerlinkGraph
+    
+    noisyReads_base = multiprocessing.Array(ctypes.c_double, N*2*L) 
+    noisyReads = np.ctypeslib.as_array(noisyReads_base.get_obj())
+    noisyReads = noisyReads.reshape(N, 2*L)   
+    
+    assert noisyReads.base.base is noisyReads_base.get_obj()
+    
+    noisyReads[:] = noisyReadsDummy[:]
+    
+    ### End sharing
+    
     print "clusterRounds, fingerPrint, clusterTreeSize",clusterRounds, fingerPrint ,clusterTreeSize
     
     specification = str(K)+'int8, 3int64'
@@ -903,8 +1013,9 @@ def groupIndelNoisyKmers(noisyReads, parameterRobot, typeOfOpt = "fast"):
     #activeKmerList = sorted(activeKmerList, cmp=multiplier(0,K))
     #activeKmerList = sorted(activeKmerList, key = itemgetterkk(range(0,K)))
     #activeKmerList = sorted(activeKmerList, key = itemgetter(slice(0)))
+    mytime = time.time()
     activeKmerList.sort()
-    print "len(activeKmerList): ", activeKmerList[0]
+    print "len(activeKmerList): ", activeKmerList[0], time.time() - mytime
     
     
     toCompareList = fromCompareList(toCompareList, activeKmerList, liid, threshold)
@@ -927,81 +1038,40 @@ def groupIndelNoisyKmers(noisyReads, parameterRobot, typeOfOpt = "fast"):
         endIndexArray.append(runningindex - 1)
         
     activeKmerUbdd = runningindex -1
+    
+    
+    
     kmerlinkGraph =  [[] for i in range(activeKmerUbdd +1 ) ]
-    
-    
-    
+
     
     print "Check the slow checking:"
     tkk = time.time()
+    numProc = 4
+    myParaObjList = []
+    
+    '''
+    def __init__(self,index):
+        self.index = index
+    def loadParameters(self, toCompareListi,endIndexArray, parameterRobot,endOfEachReadArr):
+        self.toCompareListi , self.endIndexArray, self.parameterRobot, self.endOfEachReadArr = toCompareListi , endIndexArray, parameterRobot,endOfEachReadArr
+    '''
     for i in range(N):
-        for eachtargetRead in toCompareList[i]:
-            
-            j = eachtargetRead[0]
-            startFingerPrint = eachtargetRead[1]
-            endFingerPrint = eachtargetRead[2]
-            
-            
-            #endNoisy1, endNoisy2 = 0, 0 
-            #while (noisyReads[i][endNoisy1] != 0):
-            #    endNoisy1 += 1
-
-            #while (noisyReads[j][endNoisy2] != 0):
-            #    endNoisy2 += 1
-            endNoisy1, endNoisy2 = endOfEachReadArr[i],endOfEachReadArr[j]
-                
-            if canDoFast(startFingerPrint, endFingerPrint, parameterRobot):
-                #scoretmp, returnalignedSeq2tmp ,returnalignedSeq1tmp  , startjtmp,  startitmp , endjtmp ,enditmp  = SWAlignmentBanded(startFingerPrint, endFingerPrint,  noisyReads[j][0:endNoisy2],noisyReads[i][0:endNoisy1], parameterRobot)
-                score, returnalignedSeq2 ,returnalignedSeq1  , startj,  starti , endj ,endi  = SWAlignmentBanded(startFingerPrint, endFingerPrint,  noisyReads[j][0:endNoisy2],noisyReads[i][0:endNoisy1], parameterRobot)
-            
-            else:
-                score, returnalignedSeq1, returnalignedSeq2 , starti, startj , endi, endj = SWAlignment(noisyReads[i][0:endNoisy1], noisyReads[j][0:endNoisy2], parameterRobot)
+        myNewObj =  sharedMemoryWrapper(i)
+        myNewObj.loadParameters(toCompareList[i],endIndexArray, parameterRobot,endOfEachReadArr)
+        myParaObjList.append(myNewObj)
+        
     
-            '''
-            if [scoretmp  ]!= [score ]: 
-                print "Important:::"
-                print "[scoretmp, returnalignedSeq2tmp ,returnalignedSeq1tmp  , startjtmp,  startitmp , endjtmp ,enditmp ]"
-                print [scoretmp  , startjtmp,  startitmp , endjtmp ,enditmp ]
-                printSeq(returnalignedSeq1tmp)
-                printSeq(returnalignedSeq2tmp)
-                
-                print "[score, returnalignedSeq2 ,returnalignedSeq1  , startj,  starti , endj ,endi ] "
-                print [score  , startj,  starti , endj ,endi ]
-                printSeq(returnalignedSeq1)
-                printSeq(returnalignedSeq2)
-            '''
-                        
-            if i != j and meetRequirement(score, returnalignedSeq1, returnalignedSeq2,starti, startj, endi, endj, threshold, liid, overhang , endNoisy1, endNoisy2):
-                #establish Links 
-                
-                read1Start , read2Start =  endIndexArray[i-1] +1 + starti, endIndexArray[j-1]+1 + startj
-                if i == 0 : 
-                    read1Start =   starti
-                if j == 0:
-                    read2Start =  startj
-                    
-                runningindex1, runningindex2, dummyIndex = 0,0, 0 
-                
-
-                     
-                while ( runningindex1+ starti + K < endNoisy1+1 and runningindex2+ startj +K < endNoisy2+1):
-                    #print "dummyIndex, runningindex1 , K, runningindex2 ,endNoisy1, endNoisy2", dummyIndex, runningindex1 , K, runningindex2 ,endNoisy1, endNoisy2
-                    if returnalignedSeq1[dummyIndex] ==returnalignedSeq2[dummyIndex]  :
-                    
-                        startOffset1 = starti + runningindex1
-                        startOffset2 = startj + runningindex2
-
-                        kmerlinkGraph[read1Start+runningindex1 ].append(read2Start+runningindex2)
-                        kmerlinkGraph[read2Start+runningindex2].append(read1Start+runningindex1 )
-                    
-                    
-                    if returnalignedSeq1[dummyIndex] != 0 :
-                        runningindex1 += 1
-                    if returnalignedSeq2[dummyIndex] != 0:
-                        runningindex2 += 1
-
-                    dummyIndex += 1
+    print "len(myParaObjList)" , len(myParaObjList)
+ 
+    pool = multiprocessing.Pool(processes=numProc)
+    #pool.map(alignParallel,myParaObjList)
+    r = pool.map_async(alignParallel,myParaObjList, callback=myCallBack)
+    #r = pool.map_async(alignParallel2, range(N),  callback= myCallBack)
     
+    
+    r.wait()
+    
+    print kmerlinkGraph[0]
     print "taken: (sec)", time.time() - tkk                
     ### Form clusters and form fmapping
     tempfmapping = formClusterMapping(kmerlinkGraph)
@@ -1092,7 +1162,7 @@ def groupNoisyKmers(noisyReads,parameterRobot, typeOfOpt= 'fast'):
     
     folderName = parameterRobot.defaultFolder
     
-   # list of K mers
+    # list of K mers
     for indexN in range(N):
         for indexL in range(L- K+1):
             tempKmer[0][0][:] = noisyReads[indexN][indexL:indexL+K]                
@@ -1140,6 +1210,9 @@ def pairwiseCompareKmers(kmerList,clusterList, N, L, K, threshold, liid):
         for index2 in range(index1+1, total):
             if matched(kmerList[index1][0], kmerList[index2][0], threshold, liid):
                 union(clusterList[index1], clusterList[index2])
+                
+                
+
                 
 
                 

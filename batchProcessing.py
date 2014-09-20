@@ -12,32 +12,32 @@ def batchProcessingUnitTest(numberOfRounds,parameterRobot,snpRate, typeOfGen , d
     resultList = []
 
     oldName = parameterRobot.defaultFolder
-    tempfile = open(oldName+"/result.txt", 'w')
+    
     
     for index in range(numberOfRounds):
+        tempfile = open(oldName+"/result.txt", 'a')
         os.system("mkdir "+ oldName + "/round_" +str(index) )
         
         parameterRobot.defaultFolder =  oldName + "/round_" +str(index) + "/"
-        try:
-            numMistakes, success = assemblerMain.runAssembler(snpRate, typeOfGen, detail,parameterRobot)
-        except:
-            numMistakes, success= parameterRobot.G, False
+        #try:
+        numMistakes, success = assemblerMain.runAssembler(snpRate, typeOfGen, detail,parameterRobot)
+       # except:
+       #     numMistakes, success= parameterRobot.G, False
             
         print [numMistakes, success]
         resultList.append([numMistakes, success])
             
         print "index, resultList",index, resultList
-        
-        
+
         tempfile.write(str(parameterRobot.N) +" " + str(parameterRobot.L) +" " +  str(index) +" " + str(numMistakes) + ", " + str(success) + "\n")
-    
+        tempfile.close()
     # Print result
     print "results( N, L )",parameterRobot.N, parameterRobot.L 
     
     for eachitem in resultList:
         print "eachitem",  eachitem 
         
-    tempfile.close()
+    
     
 def batchProcessingLNKTest():
     print "Batch Processing LNK Test"
@@ -72,15 +72,17 @@ def batchProcessingGenomeSegTest():
     
     logging.savingGenomeSegmentFile(headerName)
     listOfNLKDataPts = logging.loadingGenomeSegmentFile(headerName)
-    numberOfRounds = 100
+    numberOfRounds = 1
     
     for testPoint,roundNum in  zip(listOfNLKDataPts, range(len(listOfNLKDataPts))):
         folderName = headerName+"sample_point_" + str(roundNum)
         os.system("mkdir " + folderName )
                 
         [G, N, L, p, epsilon, K, liid, threshold,NKcov, Nbridge, Ncov, ratio, numberOfClusterRounds,brachingDepth,bridgingDepth,msaWidth,clusterRounds, fingerPrint, clusterRatio, startindex, endindex ] = testPoint
+        print "G", G
         parameterRobot = logging.parameterObj(G, N, L, p, epsilon, K, liid, threshold,NKcov, Nbridge, Ncov, ratio, numberOfClusterRounds,brachingDepth,bridgingDepth,msaWidth,folderName,clusterRounds, fingerPrint, clusterRatio )
         snpRate, typeOfGen , detail = 0.001,'d', "genome.fasta-"+str(startindex)+"-"+str(endindex) 
+        parameterRobot.indel = True
         temptime = time.time()
         batchProcessingUnitTest(numberOfRounds,parameterRobot,snpRate, typeOfGen , detail)
         print "time per sample point ",  time.time() - temptime
@@ -91,7 +93,7 @@ t0 = time.time()
 #logging.generateGenomeStatFile()    
 #batchProcessingLNKTest()
 
-cProfile.run('batchProcessingLNKTest()')
+cProfile.run("batchProcessingLNKTest()")
 print "Time (Sec)", time.time() - t0
 
 

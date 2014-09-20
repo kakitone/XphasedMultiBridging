@@ -1963,7 +1963,7 @@ def cleaning(noisyReads,shortToLongMap, toProcessListInput,parameterRobot, debug
     in1IndexList, in2IndexList, out1IndexList, out2IndexList, commonIndexList = toProcessListInput[0],toProcessListInput[1],toProcessListInput[2],toProcessListInput[3],toProcessListInput[4]
     toProcessList =  in1IndexList+ in2IndexList+ out1IndexList+ out2IndexList+ commonIndexList
 
-    numberOfRound = 3
+    numberOfRound = 5
     longReadToUse = commonIndexList[0]
     print "longReadToUse", longReadToUse
     #print "toProcessList", toProcessList
@@ -2018,8 +2018,8 @@ def cleaning(noisyReads,shortToLongMap, toProcessListInput,parameterRobot, debug
             if indexlong in defaultList:
                 for roundNum in range(numberOfRound):
                     if roundNum == 0:
-                        eachlongread = longReads[indexlong][0:-liid]
-                        #eachlongread = longReads[indexlong][0:-int(liid/2)]
+                        #eachlongread = longReads[indexlong][0:-liid]
+                        eachlongread = longReads[indexlong][0:-int(liid/2)]
                     else:
                         eachlongread = cleanedLongRead
                

@@ -48,18 +48,14 @@ def transformToFASTA(infile, outfile):
 
 
 
-def outputToFastaFiles(reconstructedGenome, motherGenome, parameterRobot):
-    frecov = open(parameterRobot.defaultFolder+"rec.txt", 'w')
-    for eachbase in reconstructedGenome:
-        frecov.write(str(eachbase))
-    frecov.close()
+def outputToFastaFiles(reconstructedGenome, motherGenome, parameterRobot, runningIndex):
+
     
-    
-    transformToFASTA(parameterRobot.defaultFolder+"rec.txt", parameterRobot.defaultFolder+"rec.fasta")
+    transformToFASTA(parameterRobot.defaultFolder+"rec_"+str(runningIndex)+".txt", parameterRobot.defaultFolder+"rec_"+str(runningIndex)+".fasta")
     transformToFASTA(parameterRobot.defaultFolder+"UnitTest_motherGen.txt", parameterRobot.defaultFolder+"UnitTest_motherGen.fasta")
     
     os.chdir("../gepard-1.30")
-    os.system("./gepardcmd.sh -seq1 ../indelAssembler/"+parameterRobot.defaultFolder+"UnitTest_motherGen.fasta -seq2 ../indelAssembler/"+parameterRobot.defaultFolder+"rec.fasta -matrix matrices/edna.mat -outfile "+"../indelAssembler/"+parameterRobot.defaultFolder+"jane.png")
+    os.system("./gepardcmd.sh -seq1 ../indelAssembler/"+parameterRobot.defaultFolder+"UnitTest_motherGen.fasta -seq2 ../indelAssembler/"+parameterRobot.defaultFolder+"rec_"+str(runningIndex)+".fasta -matrix matrices/edna.mat -outfile "+"../indelAssembler/"+parameterRobot.defaultFolder+"bunbun_"+ str(runningIndex)+ ".png")
     os.chdir("../indelAssembler")
     
 def itemgetterkk(items):
@@ -141,7 +137,7 @@ def findMismatchNumber(motherGenome, reconstructedGenome):
     # 1)  Sliding window matching and count
     # 2)  Make sure to not include the loop around thing. 
     
-    W= 200 
+    W= 50 
     
     runningI = 0 
     runningJ = 0 
@@ -182,13 +178,13 @@ def arrangeSeqBasedOnRefEasy(motherGenome, reconstructedGenome, parameterRobot):
     runningJ = 0
     G = len(motherGenome)
     
-    W = 200
+    W = 50
     totalScore = 0 
     parameterRobot = common.parameterRobot()
     counter = 0
     scoreList = []
     
-    while runningI < len(motherGenome) -1 and counter < 60000:
+    while runningI < len(motherGenome) -1 and counter < parameterRobot.G*1.1:
         score, returnalignedSeq1, returnalignedSeq2 , starti, startj , endi, endj = cleaner.SWAlignment(motherGenome[runningI:runningI+W] , reconstructedGenome[runningJ:runningJ+W], parameterRobot)
         scoreList.append([score,starti, startj , endi, endj,runningI ])
         
@@ -198,7 +194,7 @@ def arrangeSeqBasedOnRefEasy(motherGenome, reconstructedGenome, parameterRobot):
     scoreList = sorted(scoreList)
 
     testCases = [] 
-    for i in range(2):
+    for i in range(3):
         score, starti, startj , endi, endj,runningI =  scoreList[-(i+1)]
     
         newGenome = np.zeros(G, dtype = np.int32)
@@ -218,14 +214,21 @@ def arrangeSeqBasedOnRefEasy(motherGenome, reconstructedGenome, parameterRobot):
 
 def subAlignCompare(reconstructedGenome, motherGenome,parameterRobot):
     # Output and print to .fasta files 
+    frecov = open(parameterRobot.defaultFolder+"rec.txt", 'w')
+    for eachbase in reconstructedGenome:
+        frecov.write(str(eachbase))
+    frecov.close()
+    
     outputToFastaFiles(reconstructedGenome, motherGenome, parameterRobot)    
-
+    tmpMin = 0
+    
     
     print "len(motherGenome)", len(motherGenome)
     # Find the hashing starter 
     testCases = arrangeSeqBasedOnRefEasy(motherGenome, reconstructedGenome, parameterRobot)
     
     # Do the iterative alignment 
+    p, G = parameterRobot.p, parameterRobot.G
     finalAns= -1
     tmpMin = len(motherGenome)
     for motherGenome, i in zip(testCases,range(len(testCases))):
@@ -233,11 +236,10 @@ def subAlignCompare(reconstructedGenome, motherGenome,parameterRobot):
         if numberOfMismatch < tmpMin:
             tmpMin = numberOfMismatch 
             finalAns = i 
-            
-   
-    p, G = parameterRobot.p, parameterRobot.G
+            if tmpMin < 4*p*G:
+                break
     
-    if tmpMin < 2*p*G:
+    if tmpMin < 4*p*G:
         check = True 
     else:
         check = False

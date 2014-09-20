@@ -357,7 +357,7 @@ def transitiveReduction(simGraph):
  
 def endRemoval(simGraph):
     print "End Removal"
-    endRemThres = 5
+    endRemThres = 8
     for eachitem in simGraph:
 
         if len(eachitem.nodeIndexList) <= endRemThres: 
@@ -479,7 +479,7 @@ def getSeqGraph(fmapping,noisyReads, parameterRobot):
 def removeLoopsAndCycles(simGraph):
     # Remove selfLoops
     
-    thres = 5
+    thres = 8
     
     selfLoopList,cycleList = [], []
     for eachitem in simGraph:
@@ -527,7 +527,7 @@ def combineSelfReferal(simGraph):
     
    #return simGraph, [simGraph[0]]
 
-    thres = 5
+    thres = 8
     selfReferalList = [] 
     finishedProcessList = []
     for eachnode in simGraph:
@@ -588,7 +588,7 @@ def countNumber(currentKmerIndex, fmapping):
 def flowBalancingTransform(G2, parameterRobot, f1):
     newGraph, startList = [],[]
     liid = parameterRobot.liid
-    thres = 5 
+    thres = 8 
     f1 = sorted(f1)
     
     for eachnode in G2:

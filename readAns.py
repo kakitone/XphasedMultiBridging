@@ -65,7 +65,7 @@ def reportRecovSeqOriginal(recovSeq, f2, noisyReads, parameterRobot):
     return correctedGen[0:int(G*1.1)]
 
 
-def countDiff(currentList, nextList,thres = 5):
+def countDiff(currentList, nextList, W=1000, thres = 5):
     countDiffMax  = 0 
     
     readListOfInterest = []
@@ -75,7 +75,7 @@ def countDiff(currentList, nextList,thres = 5):
         for eachnext in nextList: 
             nextRead, nextOffset = eachnext[1:3]
             
-            if currentRead == nextRead and nextOffset > currentOffset:
+            if currentRead == nextRead and nextOffset > currentOffset and abs(nextOffset- currentOffset) < 2*W:
                 countList.append(nextOffset- currentOffset)
                 
     countList = sorted(countList)
@@ -124,7 +124,8 @@ def  findIndex(currentList, f2,readSortedf2, dummy):
 
 def addBackDeleted(recovSeq, f2,readSortedf2, noisyReads, parameterRobot):
     newRecovSeq = np.zeros(len(recovSeq)*2, dtype= np.int64)
-
+    W = int(100*parameterRobot.L/2000)
+    
     counter = 0 
     for eachindex in range(len(recovSeq)-1):
         KmerIndex = recovSeq[eachindex]
@@ -133,7 +134,7 @@ def addBackDeleted(recovSeq, f2,readSortedf2, noisyReads, parameterRobot):
         KmerIndex = recovSeq[eachindex+1 ]
         nextList =bridgeResolve.obtainReadDetail(KmerIndex, f2) 
         
-        countDiffMax,readListOfInterest = countDiff(currentList, nextList)
+        countDiffMax,readListOfInterest = countDiff(currentList, nextList,W)
         
         if countDiffMax >1 :
             #print "countDiffMax", countDiffMax
@@ -216,41 +217,48 @@ def checkSkip(currentList):
             count = count +1 
     
     return skip 
+
 def segmentedAdd(recovSeq, f2 ,readSortedf2,  noisyReads, parameterRobot):
-    recovSeqNew = np.zeros(2*len(recovSeq), dtype = np.int64)
-    thres = 2
-    W = 100
-
-    counter = 0 
-    runningSum = 0
-    
-    while counter< len(recovSeq)-W:
-        KmerIndex = recovSeq[counter]
-        currentList =bridgeResolve.obtainReadDetail(KmerIndex, f2) 
-    
-        KmerIndex = recovSeq[counter+W ]
-        nextList =bridgeResolve.obtainReadDetail(KmerIndex, f2) 
+    try : 
+        recovSeqNew = np.zeros(2*len(recovSeq), dtype = np.int64)
+        thres = 2
+        W = int(100*parameterRobot.L/2000)
         
-        countDiffMax, readListOfInterest = countDiff(currentList, nextList, 5)
         
-        skip = checkSkip(currentList)
+        #print "W", W
+        counter = 0 
+        runningSum = 0
         
-        if (not skip and -thres <=countDiffMax - W <= thres) or countDiffMax ==0 or len(readListOfInterest) == 0:
-            recovSeqNew[runningSum] = recovSeq[counter]
+        while counter< len(recovSeq)-W:
+            KmerIndex = recovSeq[counter]
+            currentList =bridgeResolve.obtainReadDetail(KmerIndex, f2) 
+        
+            KmerIndex = recovSeq[counter+W ]
+            nextList =bridgeResolve.obtainReadDetail(KmerIndex, f2) 
             
-            counter += 1
+            countDiffMax, readListOfInterest = countDiff(currentList, nextList, W, 5)
+            
+            skip = checkSkip(currentList)
+            
+            if (not skip and -thres <=countDiffMax - W <= thres) or countDiffMax ==0 or len(readListOfInterest) == 0:
+                recovSeqNew[runningSum] = recovSeq[counter]
+                
+                counter += 1
+                runningSum += 1
+            else:
+                for dummy in range(countDiffMax):
+                    newKmerIndex = findIndex(readListOfInterest, f2,readSortedf2, dummy)
+                    recovSeqNew[runningSum+ dummy] = newKmerIndex 
+                
+                print "counter, runningSum", counter ,runningSum
+                counter = counter + W
+                runningSum += countDiffMax
+                
+        for counter in range(len(recovSeq)-W, len(recovSeq)):
+            recovSeqNew[runningSum] = recovSeq[counter] 
             runningSum += 1
-        else:
-            for dummy in range(countDiffMax):
-                newKmerIndex = findIndex(readListOfInterest, f2,readSortedf2, dummy)
-                recovSeqNew[runningSum+ dummy] = newKmerIndex 
-
-            counter = counter + W
-            runningSum += countDiffMax
-            
-    for counter in range(len(recovSeq)-W, len(recovSeq)):
-        recovSeqNew[runningSum] = recovSeq[counter] 
-        runningSum += 1
+    except Exception:
+        print "recovSeqNew[runningSum+ dummy] = newKmerIndex ", len(recovSeqNew), runningSum, dummy,  newKmerIndex 
         
     return recovSeqNew[0:runningSum]
 
@@ -262,8 +270,9 @@ def reportRecovSeq(recovSeq, f2, noisyReads, parameterRobot):
     for i in range(1): 
         recovSeq = deleteExtra(recovSeq, f2, noisyReads, parameterRobot)
         print "len(recovSeq)", len(recovSeq)
+        
         # Add back the deleted items 
-        ### Todo : when adding, use only the read that fit the criterion
+        ### To do : when adding, use only the read that fit the criterion
         ### Bug in adding back deleted still
         ### Add a filter to make sure thing added back is not too few frequency
         
