@@ -48,15 +48,15 @@ def transformToFASTA(infile, outfile):
 
 
 
-def outputToFastaFiles(reconstructedGenome, motherGenome, parameterRobot, runningIndex):
+def outputToFastaFiles(reconstructedGenome, motherGenome, parameterRobot):
 
     
-    transformToFASTA(parameterRobot.defaultFolder+"rec_"+str(runningIndex)+".txt", parameterRobot.defaultFolder+"rec_"+str(runningIndex)+".fasta")
+    transformToFASTA(parameterRobot.defaultFolder+"rec.txt", parameterRobot.defaultFolder+"rec.fasta")
     transformToFASTA(parameterRobot.defaultFolder+"UnitTest_motherGen.txt", parameterRobot.defaultFolder+"UnitTest_motherGen.fasta")
     
-    os.chdir("../gepard-1.30")
-    os.system("./gepardcmd.sh -seq1 ../indelAssembler/"+parameterRobot.defaultFolder+"UnitTest_motherGen.fasta -seq2 ../indelAssembler/"+parameterRobot.defaultFolder+"rec_"+str(runningIndex)+".fasta -matrix matrices/edna.mat -outfile "+"../indelAssembler/"+parameterRobot.defaultFolder+"bunbun_"+ str(runningIndex)+ ".png")
-    os.chdir("../indelAssembler")
+    #os.chdir("../gepard-1.30")
+    #os.system("./gepardcmd.sh -seq1 ../indelAssembler/"+parameterRobot.defaultFolder+"UnitTest_motherGen.fasta -seq2 ../indelAssembler/"+parameterRobot.defaultFolder+"rec_"+str(runningIndex)+".fasta -matrix matrices/edna.mat -outfile "+"../indelAssembler/"+parameterRobot.defaultFolder+"bunbun_"+ str(runningIndex)+ ".png")
+    #os.chdir("../indelAssembler")
     
 def itemgetterkk(items):
     if len(items) == 1:

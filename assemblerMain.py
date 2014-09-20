@@ -17,6 +17,7 @@ import time
 def runAssembler(snpRate, typeOfGen, detail,parameterRobot):
     #N, G, L, p,K,snpRate, typeOfGen, detail = 100, 100, 10000, 0.01,30,0.001, 'r', "1000"
 
+    
     motherGen, reads, noisyReads = dataGen.generateData(typeOfGen, detail,parameterRobot)
     motherGen, reads, noisyReads = logging.rawDataLoad(parameterRobot.defaultFolder+"UnitTest",parameterRobot.G,parameterRobot.N,parameterRobot.L, "dn")
 

@@ -91,9 +91,9 @@ def batchProcessingGenomeSegTest():
 t0 = time.time()
 #batchProcessingGenomeSegTest()
 #logging.generateGenomeStatFile()    
-#batchProcessingLNKTest()
+batchProcessingLNKTest()
 
-cProfile.run("batchProcessingLNKTest()")
+#cProfile.run("batchProcessingLNKTest()")
 print "Time (Sec)", time.time() - t0
 
 

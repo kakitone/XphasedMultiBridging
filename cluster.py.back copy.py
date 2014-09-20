@@ -1055,7 +1055,6 @@ def groupIndelNoisyKmers(noisyReadsDummy, parameterRobot, typeOfOpt = "fast"):
     def loadParameters(self, toCompareListi,endIndexArray, parameterRobot,endOfEachReadArr):
         self.toCompareListi , self.endIndexArray, self.parameterRobot, self.endOfEachReadArr = toCompareListi , endIndexArray, parameterRobot,endOfEachReadArr
     '''
-    
     for i in range(N):
         myNewObj =  sharedMemoryWrapper(i)
         myNewObj.loadParameters(toCompareList[i],endIndexArray, parameterRobot,endOfEachReadArr)
@@ -1071,6 +1070,7 @@ def groupIndelNoisyKmers(noisyReadsDummy, parameterRobot, typeOfOpt = "fast"):
     
     
     r.wait()
+    
     print kmerlinkGraph[0]
     print "taken: (sec)", time.time() - tkk                
     ### Form clusters and form fmapping

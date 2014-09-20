@@ -250,7 +250,7 @@ def segmentedAdd(recovSeq, f2 ,readSortedf2,  noisyReads, parameterRobot):
                     newKmerIndex = findIndex(readListOfInterest, f2,readSortedf2, dummy)
                     recovSeqNew[runningSum+ dummy] = newKmerIndex 
                 
-                print "counter, runningSum", counter ,runningSum
+                #print "counter, runningSum", counter ,runningSum
                 counter = counter + W
                 runningSum += countDiffMax
                 
